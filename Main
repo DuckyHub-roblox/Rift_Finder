@@ -1,7 +1,7 @@
 local RiftFinder = {}
 
 function RiftFinder.Run(IsVIP)
-	local Ver = "0.1.1v."
+	local Ver = "0.1.2v."
 	local TeleportService = game:GetService("TeleportService")
 	local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
 
@@ -130,7 +130,7 @@ function RiftFinder.Run(IsVIP)
 				},
 				{
 					["name"] = "👥 Server Space",
-					["value"] = "```" .. tostring(#game.Players:GetChildren()) .. "/" .. tostring(game.Players.MaxPlayers) .. " Players```",
+					["value"] = "```" .. tostring(#game.Players:GetChildren() - 1) .. "/" .. tostring(game.Players.MaxPlayers) .. " Players```",
 				},
 
 			},
@@ -154,14 +154,21 @@ function RiftFinder.Run(IsVIP)
 
 		if body and body.data then
 			for _, v in ipairs(body.data) do
-				if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers) and v.playing < v.maxPlayers and v.playing >= 2 and v.id ~= game.JobId then
-					table.insert(servers, v.id)
+				if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers) and v.playing < v.maxPlayers and v.id ~= game.JobId then
+					table.insert(servers, v)
 				end
 			end
 		end
 
+		-- Sort servers by number of players (ascending)
+		table.sort(servers, function(a, b)
+			return a.playing < b.playing
+		end)
+
 		if #servers > 0 then
-			game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, servers[math.random(1, #servers)], game.Players.LocalPlayer)
+			-- Pick the server with the least number of players
+			local targetServer = servers[1]
+			game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, targetServer.id, game.Players.LocalPlayer)
 		else
 			SendMessage(Webhook_List["Errors_Hook"], "Error for: `" .. tostring(Player.Name) .. "` `No server found - Retrying in " .. tostring(Configuration["Rejoin_Time"]) .. "s`")
 
@@ -170,6 +177,7 @@ function RiftFinder.Run(IsVIP)
 			ServerHop()
 		end
 	end
+
 	
 	TeleportService.TeleportInitFailed:Connect(function(plr, id, status, _error)
 		SendMessage(Webhook_List["Errors_Hook"], "Error for: `" .. tostring(Player.Name) .. "` `Teleport failed - Retrying in " .. tostring(Configuration["Rejoin_Time"]) .. "s` `" .. tostring(_error) .. "` `" .. tostring(status) .. "`")
@@ -187,7 +195,7 @@ function RiftFinder.Run(IsVIP)
 	local function Search(IsVIP)
 		warn("Searching, premium status:", IsVIP)
 		for _, Rift in workspace.Rendered.Rifts:GetChildren() do
-			task.wait(0.05)
+			task.wait(0.01)
 
 			local RiftName = Rift.Name
 
